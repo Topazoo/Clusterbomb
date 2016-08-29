@@ -7,9 +7,10 @@
 	#2 A seperate script to add Gunicorn and Nginx to the instance 
 	#3 Modify first script that detects errors and works on multiple OS'
 	#4 Make first script customizeable
-	#5 A few templates the user can select
-	#6 Interchangeable applications (blog, shop, gallery, video, etc.)
-	#7 Additional templates and features
+	#5 A script that installs Python, setuptools, and pip if possible
+	#6 A few templates the user can select
+	#7 Interchangeable applications (blog, shop, gallery, video, etc.)
+	#8 Additional templates and features
 
 #CRITICAL: New script to get it server ready
 	# Needs to detect the OS
@@ -23,7 +24,9 @@
 
 #Potential ADD: Add support for multiple versions of Django
 	# - Needs: Better understanding of the quirks of each Django versions
-	
+
+# Local variables:
+VERSION="2.7"
 
 name_app ()
 {
@@ -40,7 +43,80 @@ create_venv ()
     echo
     echo 'Successfully created virtual environment' 
 } # Create a python virtual environment
-# !! ADD: option for different python versions
+
+pick_version ()
+{
+    echo "Choose a Python version: "
+	echo "1. Python 2.7"
+	echo "2. Python 3.4"
+	echo "3. Python 3.5"
+	echo "4. Custom"
+	echo
+	echo -n "Enter selection: "
+	read PICKED
+	
+	if [[ "$PICKED" =~ ^[1-4]+$ ]]; then
+		:	
+	else
+		echo "$PICKED is not an option!"
+		echo
+		pick_version	
+	fi
+	
+	VERSION=$PICKED
+		
+} # This records the user's Python venv choice and validates recursively
+
+custom_version ()
+{
+	echo "Enter a Python version with a single trailing digit: "
+	echo -n "Ie. \"2.7\" > "
+	read v
+	
+	VERSION=$(awk -v FLOOR=2.0 -v CIEL=3.5 -v v=$v \
+			  'BEGIN {if ((v>=FLOOR) && (v<=CIEL)) printf ("%s" , v); else printf ("%s" , "NULL");}')
+	
+	if [[ "$VERSION" == "NULL" ]]; then
+		echo
+		echo "This application does not currently support"
+		echo "Python $v, if you believe it's important that"
+		echo "version $v be supported, email: pswanson@ucdavis.edu"
+		echo 
+		custom_version
+	fi
+	
+} #Allows user to custom select a Python version and validates recursively
+
+choose_venv ()
+{
+	pick_version
+
+	if [[ "$VERSION" -eq 1 ]]; then
+		VERSION="2.7"
+		echo 'Creating a Python 2.7 virtual environment called "venv"' 
+		echo
+		virtualenv -p /usr/bin/python2.7 venv
+	elif [[ "$VERSION" -eq 2 ]]; then
+		VERSION="3.4"
+		echo 'Creating a Python 3.4 virtual environment called "venv"' 
+		echo
+		virtualenv -p /usr/bin/python3.4 venv
+	elif [[ "$VERSION" -eq 3 ]]; then
+		VERSION="3.5"
+		echo 'Creating a Python 3.5 virtual environment called "venv"' 
+		echo
+		virtualenv -p /usr/bin/python3.5 venv
+	elif [[ "$VERSION" -eq 4 ]]; then
+		custom_version
+		echo
+		echo "Creating a Python $VERSION virtual environment called "venv"" 
+		echo
+		virtualenv -p /usr/bin/python$VERSION venv
+	fi
+	
+    echo
+    echo "Successfully created Python $VERSION virtual environment" 
+} # Choose a python virtual environment
 
 get_pip_packages ()
 {
@@ -323,6 +399,7 @@ EOT
 start_app ()
 {
 	cd ../../../..
+	echo Running Detonate.sh
 	./Detonate.sh
 	cd $APPLNAME
 	
@@ -332,7 +409,19 @@ start_app ()
 	python manage.py runserver
 }
 
-main ()
+custom ()
+{
+	name_app
+	choose_venv
+	get_pip_packages
+	create_app
+	run_migrations
+	create_base
+	start_app
+	exit $?
+}
+
+default ()
 {
 	name_app
 	create_venv
@@ -341,8 +430,17 @@ main ()
 	run_migrations
 	create_base
 	start_app
+	exit $?
 }
 
-main
+main ()
+{
+	case "-c" in
+		"$@") custom;;
+	esac
+	
+	default
+}
 
-exit $?
+main $@
+

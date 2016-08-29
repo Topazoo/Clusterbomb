@@ -13,7 +13,9 @@ setup_cygwin ()
 	
 	if [[ $NOGUNICORN == 0 ]]; then
 		echo Since you are using Windows only Gunicorn
-		echo can be installed.
+		echo can be installed in Cygwin. Nginx can be downloaded as an
+		echo executable that is run on Windows itself. There is a link in
+		echo the readme. 
 		echo
 	else
 		echo Since you\'ve disabled Gunicorn setup, Detonate
