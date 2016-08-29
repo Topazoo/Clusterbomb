@@ -27,21 +27,23 @@ Files Included:
 Commands:
 
 	> Clusterbomb.sh:
-		- ./Clusterbomb.sh				Sets up a Python 2.7 virtual enironment, a base 
-										Django 1.9 application with an SQLite database, runs Detonate.sh,
-										and then runs the server.
+		- ./Clusterbomb.sh			Sets up a Python 2.7 virtual enironment, a base 
+									Django 1.9 application with an SQLite database, 
+									runs Detonate.sh, and then runs the server.
 								
-		- ./Clusterbomb.sh -c		 	Allows the user to choose the virtual environment version,
-										Django version, creates a base application with an SQlite or Postgres database,
-										and runs Detonate.sh with user specified arguments.
+		- ./Clusterbomb.sh -c		Allows the user to choose the virtual environment version,
+									Django version, creates a base application with an SQlite 
+									or Postgres database, and runs Detonate.sh with user specified 
+									arguments.
 								
 	> Detonate.sh:
-		- ./Detonate.sh					Installs and configures gunicorn for the application.
-										Installs Nginx on compatible OS' and configures it for the application.
+		- ./Detonate.sh				Installs and configures gunicorn for the application.
+									Installs Nginx on compatible OS' and configures it for the application.
 								
-		- ./Detonate.sh	-nonginx		Installs and configures only gunicorn for the application.
+		- ./Detonate.sh	-nonginx	Installs and configures only gunicorn for the application.
 
-		- ./Detonate.sh	-nongunicorn	Installs and configures only Nginx on compatible OS' and configures it for the application	
+		- ./Detonate.sh	-nongunicorn	Installs and configures only Nginx on compatible OS' and configures 
+										it for the application	
 								
 
 
