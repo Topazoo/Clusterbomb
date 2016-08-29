@@ -6,7 +6,14 @@ echo -n "Removing application... "
 
 for d in */
 do
-  rm -r $d
+  rm -rf $d
+done
+
+VARLIST=$(find ./ -maxdepth 1 -type f -not -iname "*.sh" | cut -f2 -d"/")
+
+for VAR in $VARLIST
+do
+	rm -f $VAR
 done
 
 echo Done!

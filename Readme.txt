@@ -3,9 +3,8 @@ Clusterbomb for Django!
 
 Requirements:
 
-	- A version of Python 2.0 - 3.5 installed on the OS running the instance
-	  Python 2.7 is required for default installation
-	- Python pip installed on the OS running the instance
+	- A version of Python 2.0 - 3.5 installed on the OS running the script
+	- Python pip installed on the OS running the script
 
 	
 Clusterbomb:
@@ -24,8 +23,8 @@ Clusterbomb:
 Files Included:
 
 	- Clusterbomb.sh	Starts a Django application with a base template
-	- Clusterclean.sh	Cleans an instance and venv (mostly for development)
-	- Detonate.sh		Gets your Django instance Amazon Web Server ready
+	- Clusterclean.sh	Cleans the directory of everything but the scripts
+	- Detonate.sh		Gets your Django application Amazon Web Server ready
 
 	
 Commands:
@@ -35,9 +34,11 @@ Commands:
 	
 		> ./Clusterbomb.sh			
 		
-		Sets up a Python 2.7 virtual enironment, a base 
-		Django 1.9 application with an SQLite database, 
-		runs Detonate.sh, and then runs the server.
+		Auto-detects the user's Python version, and 
+		creates a virtual enironment in that version,
+		a base Django 1.9 application with an SQLite 
+		database, runs Detonate.sh, and then runs the 
+		server.
 								
 		> ./Clusterbomb.sh -c [--custom]
 		
@@ -49,7 +50,15 @@ Commands:
 		> ./Clusterbomb.sh -d [--dud]
 
 		Does not run Detonate.sh at the end of application setup.
-								
+	
+	- Clusterclean.sh:
+	
+		> ./Clusterclean.sh
+		
+		Cleans all non shellscript files, and directories from 
+		the current directory in case of mistakes or errors during
+		a setup
+	
 	- Detonate.sh:
 	  Arguments: Detonate.sh -n | Detonate.sh -g
 	
@@ -66,6 +75,7 @@ Commands:
 		
 		Installs and configures only Nginx on compatible OS' and configures 
 		it for the application	
+		
 								
 
 Supported Operating Systems:

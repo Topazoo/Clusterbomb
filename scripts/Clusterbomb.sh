@@ -7,10 +7,11 @@
 	#2 A seperate script to add Gunicorn and Nginx to the instance 
 	#3 Modify first script that detects errors and works on multiple OS'
 	#4 Make first script customizeable
-	#5 A script that installs Python, setuptools, and pip if possible
-	#6 A few templates the user can select
-	#7 Interchangeable applications (blog, shop, gallery, video, etc.)
-	#8 Additional templates and features
+	#5 Store templates on an s3 bucket and grab what's needed
+	#6 A script that installs Python, setuptools, and pip if possible
+	#7 A few templates the user can select
+	#8 Interchangeable applications (blog, shop, gallery, video, etc.)
+	#9 Additional templates and features
 
 #CRITICAL: New script to get it server ready
 	# Needs to detect the OS
@@ -32,7 +33,9 @@ DETONATE=0
 CUSTOM=0
 
 #User Specified Options:
-VERSION="2.7"
+
+#Detected Options
+VERSION=`python -c "import sys;version='{info[0]}.{info[1]}'.format(info=list(sys.version_info[:2]));sys.stdout.write(version)";`
 
 name_app ()
 {
@@ -43,9 +46,9 @@ name_app ()
 
 create_venv ()
 {
-    echo 'Creating a Python 2.7 virtual environment called "venv"' 
+    echo "Creating a Python $1 virtual environment called "venv"" 
     echo 
-    virtualenv -p /usr/bin/python2.7 venv
+    virtualenv -p /usr/bin/python$* venv
     echo
     echo 'Successfully created virtual environment' 
 } # Create a python virtual environment
@@ -53,15 +56,16 @@ create_venv ()
 pick_version ()
 {
     echo "Choose a Python version: "
-	echo "1. Python 2.7"
-	echo "2. Python 3.4"
-	echo "3. Python 3.5"
-	echo "4. Custom"
+	echo "1. Autodetect"
+	echo "2. Python 2.7"
+	echo "3. Python 3.4"
+	echo "4. Python 3.5"
+	echo "5. Custom"
 	echo
 	echo -n "Enter selection: "
 	read PICKED
 	
-	if [[ "$PICKED" =~ ^[1-4]+$ ]]; then
+	if [[ "$PICKED" =~ ^[1-5]+$ ]]; then
 		:	
 	else
 		echo "$PICKED is not an option!"
@@ -96,28 +100,34 @@ custom_version ()
 choose_venv ()
 {
 	pick_version
-
+	
 	if [[ "$VERSION" -eq 1 ]]; then
+		VERSION=`python -c "import sys;version='{info[0]}.{info[1]}'.format(info=list(sys.version_info[:2]));sys.stdout.write(version)";`
+		create_venv $VERSION
+		echo "Creating a Python $VERSION virtual environment called "venv"" 
+		echo
+		virtualenv -p /usr/bin/python$VERSION venv
+	elif [[ "$VERSION" -eq 2 ]]; then
 		VERSION="2.7"
 		echo 'Creating a Python 2.7 virtual environment called "venv"' 
 		echo
-		virtualenv -p /usr/bin/python2.7 venv
-	elif [[ "$VERSION" -eq 2 ]]; then
+		create_venv $VERSION
+	elif [[ "$VERSION" -eq 3 ]]; then
 		VERSION="3.4"
 		echo 'Creating a Python 3.4 virtual environment called "venv"' 
 		echo
 		virtualenv -p /usr/bin/python3.4 venv
-	elif [[ "$VERSION" -eq 3 ]]; then
+	elif [[ "$VERSION" -eq 4 ]]; then
 		VERSION="3.5"
 		echo 'Creating a Python 3.5 virtual environment called "venv"' 
 		echo
-		virtualenv -p /usr/bin/python3.5 venv
-	elif [[ "$VERSION" -eq 4 ]]; then
+		create_venv $VERSION
+	elif [[ "$VERSION" -eq 5 ]]; then
 		custom_version
 		echo
 		echo "Creating a Python $VERSION virtual environment called "venv"" 
 		echo
-		virtualenv -p /usr/bin/python$VERSION venv
+		create_venv $VERSION
 	fi
 	
     echo
@@ -133,6 +143,7 @@ get_pip_packages ()
     echo
 
     pip install django~=1.9.0
+	pip install s3cmd
 
 } # Installs pertinent pip packages
 # !! ADD: database files for postgres
@@ -440,7 +451,7 @@ custom ()
 default ()
 {
 	name_app
-	create_venv
+	create_venv $VERSION
 	get_pip_packages
 	create_app
 	run_migrations
