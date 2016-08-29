@@ -2,9 +2,11 @@
 #Author: Peter Swanson
 #Cleans a directory of a Clusterbomb created application
 
-echo -n "Enter the name of the application to remove: " 
-read APPLNAME
+echo -n "Removing application... " 
 
-rm -r venv $APPLNAME *.tmp
+for d in */
+do
+  rm -r $d
+done
 
 echo Done!

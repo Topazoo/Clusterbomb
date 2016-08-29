@@ -2,65 +2,117 @@
 #Author: Peter Swanson
 #Creates a Django Application based on user entered parameters
 
+#DEVELOPMENT CHECKLIST:
+	#1 A script to set up a basic instance with a built-in database		<>
+	#2 A seperate script to add Gunicorn and Nginx to the instance 
+	#3 Modify first script that detects errors and works on multiple OS'
+	#4 Make first script customizeable
+	#5 A few templates the user can select
+	#6 Interchangeable applications (blog, shop, gallery, video, etc.)
+	#7 Additional templates and features
 
-read -r -p "Please enter a name for the application: " APPLNAME
-echo 
-echo 'Creating a Python 2.7 virtual environment called "venv"' 
-echo 
-virtualenv -p /usr/bin/python2.7 venv
-echo
-echo 'Successfully created virtual environment' 
-source venv/bin/activate
-echo
+#CRITICAL: New script to get it server ready
+	# Needs to detect the OS
 
-echo Installing pip packeges...
-echo
+#ADD: Add command line options for more customization 
+    # - Needs: A parser for various arguments
+#ADD: Add support for multiple OS'
+	# - Needs: Testing with virtualbox
+#ADD: Add support for multiple versions of Python
+	# Needs: - To be integrated with Pip install to get correct versions
 
-pip install django~=1.9.0
+#Potential ADD: Add support for multiple versions of Django
+	# - Needs: Better understanding of the quirks of each Django versions
+	
 
-echo
-echo Creating Django Application $APPLNAME...
-django-admin startproject $APPLNAME 
+name_app ()
+{
+    read -r -p "Please enter a name for the application: " APPLNAME
+    echo
+} # Read name of application from user
+# !! ADD: namecheck of some kind! No reserved words
 
-echo Created project $APPLNAME!
-echo 
+create_venv ()
+{
+    echo 'Creating a Python 2.7 virtual environment called "venv"' 
+    echo 
+    virtualenv -p /usr/bin/python2.7 venv
+    echo
+    echo 'Successfully created virtual environment' 
+} # Create a python virtual environment
+# !! ADD: option for different python versions
 
-echo Setting up application....
-cd $APPLNAME
+get_pip_packages ()
+{
+    source venv/bin/activate
 
-python manage.py makemigrations
-python manage.py migrate
-echo
+	echo
+    echo Installing pip packeges...
+    echo
 
-echo Creating base...
-python manage.py startapp base
-cd base
-echo "from django.conf.urls import url" >> urls.py
-echo "from . import views" >> urls.py
-echo -e "\n\n\n" >> urls.py
-echo "urlpatterns = [" >> urls.py
-echo "    url(r'^$', views.base, name='base')," >> urls.py
-echo "]" >> urls.py
-rm views.py
-echo "from django.shortcuts import render" >> views.py
-echo -e "\n\n\n" >> views.py
-echo "def base(request):" >> views.py
-echo "    return render(request, 'base/home.html', {})" >> views.py
-echo 
+    pip install django~=1.9.0
 
-cd ..
+} # Installs pertinent pip packages
+# !! ADD: database files for postgres
+# !! Potential ADD: good packages to use
 
-cd $APPLNAME
-rm urls.py
-echo "from django.conf.urls import include, url" >> urls.py
-echo "from django.contrib import admin" >> urls.py
-echo -e "\n\n\n" >> urls.py
-echo "urlpatterns = [" >> urls.py
-echo "    url(r'^admin/', admin.site.urls)," >> urls.py
-echo "    url(r'', include('base.urls'))," >> urls.py
-echo "]" >> urls.py
-rm settings.py
-cat <<EOT >> settings.py
+create_app ()
+{
+    echo
+    echo Creating Django Application $APPLNAME...
+	
+    django-admin startproject $APPLNAME 
+
+    echo Created project $APPLNAME!
+    echo
+} # Creates the initial Django project
+
+run_migrations ()
+{
+    echo Setting up application...
+	
+    cd $APPLNAME
+    python manage.py makemigrations
+    python manage.py migrate
+} # run initial migrations 
+
+create_base ()
+{
+    echo
+    echo Creating base...
+	
+    python manage.py startapp base
+    cd base
+
+	echo "from django.conf.urls import url" >> urls.py
+	echo "from . import views" >> urls.py
+	echo -e "\n\n\n" >> urls.py
+	echo "urlpatterns = [" >> urls.py
+	echo "    url(r'^$', views.base, name='base')," >> urls.py
+	echo "]" >> urls.py
+	
+	rm views.py
+	
+	echo "from django.shortcuts import render" >> views.py
+	echo -e "\n\n\n" >> views.py
+	echo "def base(request):" >> views.py
+	echo "    return render(request, 'base/home.html', {})" >> views.py
+	echo 
+
+	cd ..
+	cd $APPLNAME
+	rm urls.py
+	
+	echo "from django.conf.urls import include, url" >> urls.py
+	echo "from django.contrib import admin" >> urls.py
+	echo -e "\n\n\n" >> urls.py
+	echo "urlpatterns = [" >> urls.py
+	echo "    url(r'^admin/', admin.site.urls)," >> urls.py
+	echo "    url(r'', include('base.urls'))," >> urls.py
+	echo "]" >> urls.py
+	
+	rm settings.py
+	cat <<EOT >> settings.py
 """
 Django settings for $APPLNAME project.
 
@@ -188,16 +240,15 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 EOT
 
-cd ..
-cd base
+	cd ..
+	cd base
+	mkdir templates
+	mkdir static
+	cd templates
+	mkdir base
+	cd base
 
-mkdir templates
-mkdir static
-cd templates
-mkdir base
-cd base
-
-cat <<EOT >> base.html
+	cat <<EOT >> base.html
 {% load staticfiles %}
 <html>
   <head>
@@ -224,7 +275,7 @@ cat <<EOT >> base.html
  </html>
 EOT
 
-cat <<EOT >> home.html
+	cat <<EOT >> home.html
 {% extends 'base/base.html' %}
 {% block content %}
   <br><br><br><br>
@@ -235,11 +286,12 @@ cat <<EOT >> home.html
 {% endblock %}
 EOT
 
-cd ../..
-cd static
-mkdir css
-cd css
-cat <<EOT >> base.css
+	cd ../..
+	cd static
+	mkdir css
+	cd css
+	
+	cat <<EOT >> base.css
 h1{
     color: White;
     font-family: 'Baloo Tamma';
@@ -266,11 +318,31 @@ body {
 }
 EOT
 
-cd ../../..
-echo 
+}
 
-echo Starting application...
-python manage.py runserver
+start_app ()
+{
+	cd ../../../..
+	./Detonate.sh
+	cd $APPLNAME
+	
+	echo 
+	echo Starting application...
+	
+	python manage.py runserver
+}
 
+main ()
+{
+	name_app
+	create_venv
+	get_pip_packages
+	create_app
+	run_migrations
+	create_base
+	start_app
+}
 
+main
 
+exit $?
