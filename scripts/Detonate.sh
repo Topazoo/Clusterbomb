@@ -2,7 +2,7 @@
 #Author: Peter Swanson
 #Adds Gunicorn and Nginx to an application
 
-#Command Line Options:
+#Command Line Arguments:
 NONGINX=0
 NOGUNICORN=0
 
@@ -10,14 +10,13 @@ setup_cygwin ()
 {
     echo Detected Cygwin as the operating system!
 	echo
-	
-	if [[ $NOGUNICORN == 0 ]]; then
-		echo Since you are using Windows only Gunicorn
-		echo can be installed in Cygwin. Nginx can be downloaded as an
-		echo executable that is run on Windows itself. There is a link in
-		echo the readme. 
-		echo
-	else
+	echo Since you are using Windows only Gunicorn
+	echo can be installed in Cygwin. Nginx can be downloaded as an
+	echo executable that is run on Windows itself. There is a link in
+	echo the readme. 
+	echo
+		
+	if [[ $NOGUNICORN == 1 ]]; then
 		echo Since you\'ve disabled Gunicorn setup, Detonate
 		echo will now exit...
 	fi
@@ -33,22 +32,34 @@ setup_unknown ()
 	echo "-Peter"
 } # Runs if the OS is unsupported
 
-read_cla ()
+get_cla ()
 {
-	case "-nonginx" in 
-	   "$@") NONGINX=1;;
-	esac
-
-	case "-nogunicorn" in 
-	   "$@") NOGUNICORN=1;;
-	esac		
-} # Reads command line arguments  
+	for ARGUMENT in "$@"
+	do
+		case "$ARGUMENT" in
+		
+			-g*|--nonginx*) NONGINX=1
+			;;
+			
+			-n*|--nogunicorn*) NOGUNICORN=1
+			;;
+			
+			*) echo "$ARGUMENT is not a valid argument"
+			   echo "read the documentation for more info."
+			;;
+			
+		esac
+	done
+	
+} # Reads command line arguments
 
 main ()
 {
 	echo
+	
+	get_cla $@
+
 	if [[ "$OSTYPE" == 'cygwin' ]]; then
-		read_cla $@
 		setup_cygwin $1
 	else
 		setup_unknown
@@ -57,6 +68,6 @@ main ()
 # ADD:
 	#Ubuntu, Linux, OSX at least!
 
-main $1
+main $@
 
 exit 1

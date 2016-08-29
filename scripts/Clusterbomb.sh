@@ -22,10 +22,16 @@
 #ADD: Add support for multiple versions of Python
 	# Needs: - To be integrated with Pip install to get correct versions
 
+#CHANGE: Make setting up static and templates its own function
+	
 #Potential ADD: Add support for multiple versions of Django
 	# - Needs: Better understanding of the quirks of each Django versions
 
-# Local variables:
+# Command Line Arguments:
+DETONATE=0
+CUSTOM=0
+
+#User Specified Options:
 VERSION="2.7"
 
 name_app ()
@@ -173,7 +179,6 @@ create_base ()
 	echo -e "\n\n\n" >> views.py
 	echo "def base(request):" >> views.py
 	echo "    return render(request, 'base/home.html', {})" >> views.py
-	echo 
 
 	cd ..
 	cd $APPLNAME
@@ -394,20 +399,25 @@ body {
 }
 EOT
 
-}
+	cd ../../../..
+
+} # Sets up and creates a base template
+
+run_detonate ()
+{
+#Takes optional variables for CLA
+	echo Running Detonate.sh
+	./Detonate.sh
+} # Runs Detonate.sh
 
 start_app ()
 {
-	cd ../../../..
-	echo Running Detonate.sh
-	./Detonate.sh
 	cd $APPLNAME
-	
 	echo 
 	echo Starting application...
 	
 	python manage.py runserver
-}
+} # Starts the application server
 
 custom ()
 {
@@ -417,9 +427,15 @@ custom ()
 	create_app
 	run_migrations
 	create_base
+	
+	if [[ "DETONATE" -eq 0 ]]; then
+		run_detonate
+	fi
+	
 	start_app
+	
 	exit $?
-}
+} # Driver for custom application creation
 
 default ()
 {
@@ -429,18 +445,51 @@ default ()
 	create_app
 	run_migrations
 	create_base
+	
+	if [[ "$DETONATE" -eq 0 ]]; then
+		run_detonate
+	fi
+	
 	start_app
+	
 	exit $?
-}
+} # Driver for default application creation
+
+get_cla ()
+{
+	for ARGUMENT in "$@"
+	do
+		case "$ARGUMENT" in
+		
+			-cd*|-dc*) DETONATE=1
+					   CUSTOM=1
+			;;
+		
+			-c*|--custom*) CUSTOM=1
+			;;
+			
+			-d*|--dud*) DETONATE=1
+			;;
+			
+			*) echo "$ARGUMENT is not a valid argument"
+			   echo "read the documentation for more info."
+			;;
+			
+		esac
+	done
+	
+} # Reads command line arguments
 
 main ()
 {
-	case "-c" in
-		"$@") custom;;
-	esac
+	get_cla $@
 	
-	default
-}
+	if [[ "$CUSTOM" -eq 0 ]]; then
+		default
+	else
+		custom
+	fi
+} # Main ()
 
 main $@
 
