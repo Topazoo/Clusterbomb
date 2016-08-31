@@ -28,14 +28,17 @@
 #Potential ADD: Add support for multiple versions of Django
 	# - Needs: Better understanding of the quirks of each Django versions
 
-# Command Line Arguments:
-DETONATE=0
+# Command line arguments:
+DETONATE=1
 CUSTOM=0
+S3CMD=1
 
-#User Specified Options:
+# Parsed command line arguments:
+CLA=()
 
-#Detected Options
+# Detected:
 VERSION=`python -c "import sys;version='{info[0]}.{info[1]}'.format(info=list(sys.version_info[:2]));sys.stdout.write(version)";`
+VALID=0
 
 name_app ()
 {
@@ -46,7 +49,6 @@ name_app ()
 
 create_venv ()
 {
-    echo "Creating a Python $1 virtual environment called "venv"" 
     echo 
     virtualenv -p /usr/bin/python$* venv
     echo
@@ -103,30 +105,18 @@ choose_venv ()
 	
 	if [[ "$VERSION" -eq 1 ]]; then
 		VERSION=`python -c "import sys;version='{info[0]}.{info[1]}'.format(info=list(sys.version_info[:2]));sys.stdout.write(version)";`
-		create_venv $VERSION
-		echo "Creating a Python $VERSION virtual environment called "venv"" 
-		echo
-		virtualenv -p /usr/bin/python$VERSION venv
+		create_venv $VERSION 
 	elif [[ "$VERSION" -eq 2 ]]; then
 		VERSION="2.7"
-		echo 'Creating a Python 2.7 virtual environment called "venv"' 
-		echo
 		create_venv $VERSION
 	elif [[ "$VERSION" -eq 3 ]]; then
-		VERSION="3.4"
-		echo 'Creating a Python 3.4 virtual environment called "venv"' 
-		echo
-		virtualenv -p /usr/bin/python3.4 venv
+		VERSION="3.4" 
+		create_venv $VERSION
 	elif [[ "$VERSION" -eq 4 ]]; then
 		VERSION="3.5"
-		echo 'Creating a Python 3.5 virtual environment called "venv"' 
-		echo
 		create_venv $VERSION
 	elif [[ "$VERSION" -eq 5 ]]; then
 		custom_version
-		echo
-		echo "Creating a Python $VERSION virtual environment called "venv"" 
-		echo
 		create_venv $VERSION
 	fi
 	
@@ -142,7 +132,7 @@ get_pip_packages ()
     echo Installing pip packeges...
     echo
 
-    pip install django~=1.9.0
+    pip install django~=1.9.2
 	pip install s3cmd
 
 } # Installs pertinent pip packages
@@ -439,7 +429,7 @@ custom ()
 	run_migrations
 	create_base
 	
-	if [[ "DETONATE" -eq 0 ]]; then
+	if [[ "DETONATE" -eq 1 ]]; then
 		run_detonate
 	fi
 	
@@ -466,30 +456,56 @@ default ()
 	exit $?
 } # Driver for default application creation
 
-get_cla ()
+invalid_arg ()
+{
+	echo Argument $* is invalid! Exiting...
+	exit 0
+} # Exits on invalid command line argument
+
+cla_parser ()
 {
 	for ARGUMENT in "$@"
 	do
-		case "$ARGUMENT" in
 		
-			-cd*|-dc*) DETONATE=1
-					   CUSTOM=1
-			;;
+		if [[ "$ARGUMENT" == -[^-]* ]]; then
+			LENGTH=${#ARGUMENT}
+			START=1
+						
+			while [ $START -lt $LENGTH ]
+			do
+				ARG="-${ARGUMENT:$START:1}"
+				CLA+=("$ARG")	
+				START=$[START+1]
+			done
 		
-			-c*|--custom*) CUSTOM=1
-			;;
-			
-			-d*|--dud*) DETONATE=1
-			;;
-			
-			*) echo "$ARGUMENT is not a valid argument"
-			   echo "read the documentation for more info."
-			;;
-			
-		esac
+		elif [[ "$ARGUMENT" == --* ]]; then
+			CLA+=("$ARGUMENT")
+		
+		else
+			invalid_arg $ARGUMENT
+		fi		
+		
 	done
 	
-} # Reads command line arguments
+} # Parses command line arguments and checks argument formatting
+
+get_cla ()
+{
+	cla_parser $@
+	
+	for ARGUMENT in "${CLA[@]}"
+	do
+	
+		if [[ "$ARGUMENT" == "-c" ]] || [[ "$ARGUMENT" == --custom ]]; then
+			CUSTOM=1
+		elif [[ "$ARGUMENT" == "-d" ]] || [[ "$ARGUMENT" == --dud ]]; then
+			DETONATE=0
+		else
+			invalid_arg $ARGUMENT
+		fi
+		
+	done
+} # Reads accepted command line arguments
 
 main ()
 {
@@ -501,6 +517,8 @@ main ()
 		custom
 	fi
 } # Main ()
+  # Gets arguments from command line and executes the installation based on
+  # those arguments.  
 
 main $@
 

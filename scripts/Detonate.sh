@@ -6,6 +6,21 @@
 NONGINX=0
 NOGUNICORN=0
 
+get_packages ()
+{
+	echo 
+	echo Installing server packages...
+	echo
+	
+	source venv/bin/activate
+	
+	if [[ $NOGUNICORN == 0 ]]; then
+		pip install gunicorn
+	fi
+	
+	pip list
+} # Gets server packages 
+
 setup_cygwin ()
 {
     echo Detected Cygwin as the operating system!
@@ -19,6 +34,7 @@ setup_cygwin ()
 	if [[ $NOGUNICORN == 1 ]]; then
 		echo Since you\'ve disabled Gunicorn setup, Detonate
 		echo will now exit...
+		exit 1
 	fi
 	
 } # Sets up Gunicorn on Windows Cygwin
@@ -53,6 +69,57 @@ get_cla ()
 	
 } # Reads command line arguments
 
+invalid_arg ()
+{
+	echo Argument $* is invalid! Exiting...
+	exit 0
+} # Exits on invalid command line argument
+
+cla_parser ()
+{
+	for ARGUMENT in "$@"
+	do
+		
+		if [[ "$ARGUMENT" == -[^-]* ]]; then
+			LENGTH=${#ARGUMENT}
+			START=1
+						
+			while [ $START -lt $LENGTH ]
+			do
+				ARG="-${ARGUMENT:$START:1}"
+				CLA+=("$ARG")	
+				START=$[START+1]
+			done
+		
+		elif [[ "$ARGUMENT" == --* ]]; then
+			CLA+=("$ARGUMENT")
+		
+		else
+			invalid_arg $ARGUMENT
+		fi		
+		
+	done
+	
+} # Parses command line arguments and checks argument formatting
+
+get_cla ()
+{
+	cla_parser $@
+	
+	for ARGUMENT in "${CLA[@]}"
+	do
+	
+		if [[ "$ARGUMENT" == "-g" ]] || [[ "$ARGUMENT" == --nonginx ]]; then
+			NONGINX=1
+		elif [[ "$ARGUMENT" == "-n" ]] || [[ "$ARGUMENT" == --nogunicorn ]]; then
+			NOGUNICORN=1
+		else
+			invalid_arg $ARGUMENT
+		fi
+		
+	done
+} # Reads accepted command line arguments
+
 main ()
 {
 	echo
@@ -60,10 +127,13 @@ main ()
 	get_cla $@
 
 	if [[ "$OSTYPE" == 'cygwin' ]]; then
+		NONGINX=1
 		setup_cygwin $1
 	else
 		setup_unknown
 	fi
+	
+	get_packages
 } #Main
 # ADD:
 	#Ubuntu, Linux, OSX at least!
