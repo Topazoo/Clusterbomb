@@ -16,4 +16,8 @@ do
 	rm -f $VAR
 done
 
+cd /etc/
+cd init
+rm gunicorn.conf
+
 echo Done!

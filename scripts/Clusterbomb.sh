@@ -39,6 +39,15 @@ CLA=()
 # Detected:
 VERSION=`python -c "import sys;version='{info[0]}.{info[1]}'.format(info=list(sys.version_info[:2]));sys.stdout.write(version)";`
 VALID=0
+PWD="UNKNOWN"
+
+#Colors:
+RED='\033[0;91m'
+GREEN='\033[0;92m'
+YL='\033[0;93m' 
+BLUE='\033[0;34m'
+LBLU='\033[0;96m'
+NC='\033[0m'
 
 name_app ()
 {
@@ -52,7 +61,6 @@ create_venv ()
     echo 
     virtualenv -p /usr/bin/python$* venv
     echo
-    echo 'Successfully created virtual environment' 
 } # Create a python virtual environment
 
 pick_version ()
@@ -70,7 +78,7 @@ pick_version ()
 	if [[ "$PICKED" =~ ^[1-5]+$ ]]; then
 		:	
 	else
-		echo "$PICKED is not an option!"
+		echo -e "${RED}$PICKED is not an option!${NC}"
 		echo
 		pick_version	
 	fi
@@ -82,7 +90,7 @@ pick_version ()
 custom_version ()
 {
 	echo "Enter a Python version with a single trailing digit: "
-	echo -n "Ie. \"2.7\" > "
+	echo -n -e "Ie. ${YL}\"2.7\"${NC} > "
 	read v
 	
 	VERSION=$(awk -v FLOOR=2.0 -v CIEL=3.5 -v v=$v \
@@ -90,9 +98,9 @@ custom_version ()
 	
 	if [[ "$VERSION" == "NULL" ]]; then
 		echo
-		echo "This application does not currently support"
-		echo "Python $v, if you believe it's important that"
-		echo "version $v be supported, email: pswanson@ucdavis.edu"
+		echo -e "${RED}This application does not currently support${NC}"
+		echo -e "${RED}Python $v, if you believe it's important that${NC}"
+		echo -e "${RED}version $v be supported, email: pswanson@ucdavis.edu${NC}"
 		echo 
 		custom_version
 	fi
@@ -121,7 +129,7 @@ choose_venv ()
 	fi
 	
     echo
-    echo "Successfully created Python $VERSION virtual environment" 
+    echo -e "${GREEN}Successfully created Python $VERSION virtual environment${NC}" 
 } # Choose a python virtual environment
 
 get_pip_packages ()
@@ -134,6 +142,8 @@ get_pip_packages ()
 
     pip install django~=1.9.2
 	pip install s3cmd
+	
+	echo -e "${GREEN} Packages installed!${NC}"
 
 } # Installs pertinent pip packages
 # !! ADD: database files for postgres
@@ -146,7 +156,7 @@ create_app ()
 	
     django-admin startproject $APPLNAME 
 
-    echo Created project $APPLNAME!
+    echo -e "${GREEN}Created project $APPLNAME!${NC}"
     echo
 } # Creates the initial Django project
 
@@ -157,6 +167,8 @@ run_migrations ()
     cd $APPLNAME
     python manage.py makemigrations
     python manage.py migrate
+	
+	echo -e "${GREEN}Migrations successful${NC}"
 } # run initial migrations 
 
 create_base ()
@@ -384,6 +396,7 @@ h1body{
     font-family: 'Baloo Tamma';
 	font-size: 4em;
 	text-align: center;
+	padding-left: 20px;
 }
 
 .header {
@@ -400,6 +413,8 @@ body {
 }
 EOT
 
+	echo -e "${GREEN}Created base!${NC}"
+
 	cd ../../../..
 
 } # Sets up and creates a base template
@@ -407,7 +422,8 @@ EOT
 run_detonate ()
 {
 #Takes optional variables for CLA
-	echo Running Detonate.sh
+	echo
+	echo -e "${LBLU}Running Detonate.sh${NC}"
 	./Detonate.sh
 } # Runs Detonate.sh
 
@@ -415,7 +431,7 @@ start_app ()
 {
 	cd $APPLNAME
 	echo 
-	echo Starting application...
+	echo -e "${LBLU}Starting application...${NC}"
 	
 	python manage.py runserver
 } # Starts the application server
@@ -431,9 +447,9 @@ custom ()
 	
 	if [[ "DETONATE" -eq 1 ]]; then
 		run_detonate
+	else 
+		start_app
 	fi
-	
-	start_app
 	
 	exit $?
 } # Driver for custom application creation
@@ -447,18 +463,18 @@ default ()
 	run_migrations
 	create_base
 	
-	if [[ "$DETONATE" -eq 0 ]]; then
+	if [[ "$DETONATE" -eq 1 ]]; then
 		run_detonate
+	else
+		start_app
 	fi
-	
-	start_app
-	
+		
 	exit $?
 } # Driver for default application creation
 
 invalid_arg ()
 {
-	echo Argument $* is invalid! Exiting...
+	echo -e "${RED}Argument $* is invalid! Exiting...${NC}"
 	exit 0
 } # Exits on invalid command line argument
 
@@ -509,6 +525,7 @@ get_cla ()
 
 main ()
 {
+	PWD=$(pwd)
 	get_cla $@
 	
 	if [[ "$CUSTOM" -eq 0 ]]; then

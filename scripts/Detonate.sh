@@ -5,73 +5,91 @@
 #Command Line Arguments:
 NONGINX=0
 NOGUNICORN=0
+APPNAME="Unknown"
+PWDIR="Unknown"
 
-get_packages ()
+#Colors:
+RED='\033[0;91m'
+GREEN='\033[0;92m'
+YL='\033[0;93m' 
+BLUE='\033[0;34m'
+LBLU='\033[0;96m'
+NC='\033[0m'
+
+setup_gunicorn_nosudo ()
 {
-	echo 
-	echo Installing server packages...
+	pip install gunicorn
 	echo
+	echo Setting up Gunicorn...
+	echo
+	echo -e "${LBLU}Launching server...${NC}"
 	
-	source venv/bin/activate
+	cd $PWDIR/$APPNAME/$APPNAME
 	
-	if [[ $NOGUNICORN == 0 ]]; then
-		pip install gunicorn
+	if [[ $(grep -c "from django.contrib.staticfiles.urls" urls.py) -eq 0 ]]; then
+		sed -i '1s/^/from django.contrib.staticfiles.urls import staticfiles_urlpatterns\n/' urls.py
+		echo "urlpatterns += staticfiles_urlpatterns()" >> urls.py
 	fi
 	
-	pip list
-} # Gets server packages 
+	cd /etc/
+	mkdir -p init
+	cd init	
+	
+	cat <<EOT >> gunicorn.conf
+description "Gunicorn application server handling $APPNAME"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+setuid $USER
+setgid www-data
+chdir /home/$USER/$APPNAME
+
+exec venv/bin/gunicorn --workers 3 --bind unix:/home/$USER/$APPNAME/$APPNAME.sock $APPNAME.wsgi:application
+
+EOT
+} # Writes a basic config file for gunicorn
+
+start_gunicorn ()
+{
+	cd $PWDIR/$APPNAME
+	gunicorn $APPNAME.wsgi 
+}
 
 setup_cygwin ()
 {
-    echo Detected Cygwin as the operating system!
+    echo -e "${GREEN}Detected Cygwin as the operating system!${NC}"
 	echo
-	echo Since you are using Windows only Gunicorn
-	echo can be installed in Cygwin. Nginx can be downloaded as an
-	echo executable that is run on Windows itself. There is a link in
-	echo the readme. 
+	echo -e "${YL}Only gunicorn${NC}"
+	echo -e "${YL}can be installed in Cygwin. Nginx can be downloaded as an${NC}"
+	echo -e "${YL}executable that is run on Windows itself. There is a link in${NC}"
+	echo -e "${YL}the readme.${NC}" 
 	echo
 		
 	if [[ $NOGUNICORN == 1 ]]; then
-		echo Since you\'ve disabled Gunicorn setup, Detonate
-		echo will now exit...
+		echo -e "${YL}Since you\'ve disabled gunicorn setup, Detonate${NC}"
+		echo -e "${YL}will now exit...${NC}"
 		exit 1
+	else
+		setup_gunicorn_nosudo
+		start_gunicorn
 	fi
 	
 } # Sets up Gunicorn on Windows Cygwin
       
 setup_unknown ()
 {
-    echo Unsupported operating system. If your operating system
-    echo "is incompatible with Clusterbomb, please email "
-    echo "pswanson@ucdavis.edu and I'll see if I can add it. "
+    echo -e "${RED}Unsupported operating system. If your operating system${NC}"
+    echo -e "${RED}is incompatible with Clusterbomb, please email ${NC}"
+    echo -e "${RED}pswanson@ucdavis.edu and I\'ll see if I can add it.${NC}"
     echo
-	echo "-Peter"
+	echo "${RED}-Peter${NC}"
 } # Runs if the OS is unsupported
-
-get_cla ()
-{
-	for ARGUMENT in "$@"
-	do
-		case "$ARGUMENT" in
-		
-			-g*|--nonginx*) NONGINX=1
-			;;
-			
-			-n*|--nogunicorn*) NOGUNICORN=1
-			;;
-			
-			*) echo "$ARGUMENT is not a valid argument"
-			   echo "read the documentation for more info."
-			;;
-			
-		esac
-	done
-	
-} # Reads command line arguments
 
 invalid_arg ()
 {
-	echo Argument $* is invalid! Exiting...
+	echo -e "${RED}Argument $* is invalid! Exiting...${NC}"
 	exit 0
 } # Exits on invalid command line argument
 
@@ -120,9 +138,25 @@ get_cla ()
 	done
 } # Reads accepted command line arguments
 
+get_name()
+{
+	APPNAME=$(find * -type d ! -name 'venv' ! -path . ! -print | head -1)
+} # Gets the name of the application
+
 main ()
 {
-	echo
+	get_name $@
+	PWDIR=$(pwd)
+	
+	echo 
+	if [[ ${#APPNAME} == 0 ]]; then
+		echo -e "${RED}Couldn't find a Django application! Exiting!${NC}"
+		exit 1
+	else 
+		echo -e "${GREEN}Detected application named $APPNAME${NC}"
+	fi
+	
+	source venv/bin/activate
 	
 	get_cla $@
 
@@ -133,7 +167,7 @@ main ()
 		setup_unknown
 	fi
 	
-	get_packages
+	
 } #Main
 # ADD:
 	#Ubuntu, Linux, OSX at least!
