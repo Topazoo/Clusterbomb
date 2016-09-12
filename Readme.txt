@@ -30,7 +30,7 @@ Files Included:
 Commands:
 
 	- Clusterbomb.sh:
-	  Arguments: Clusterbomb.sh -c -d
+	  Arguments: Clusterbomb.sh -c -d |or| Clusterbomb.sh -a
 	
 		> ./Clusterbomb.sh			
 		
@@ -50,6 +50,10 @@ Commands:
 		> ./Clusterbomb.sh -d [--dud]
 
 		Does not run Detonate.sh at the end of application setup.
+		
+		> ./Clusterbomb.sh -a [--detargs]
+		
+		Runs the default Clusterbomb setup but allows arguments for Detonate
 	
 	- Clusterclean.sh:
 	
@@ -57,10 +61,10 @@ Commands:
 		
 		Cleans all non shellscript files, and directories from 
 		the current directory in case of mistakes or errors during
-		a setup
+		a setup. Removes gunicorn config file.
 	
 	- Detonate.sh:
-	  Arguments: Detonate.sh -n | Detonate.sh -g
+	  Arguments: Detonate.sh -n -d
 	
 		> ./Detonate.sh		
 		
@@ -70,18 +74,21 @@ Commands:
 		> ./Detonate.sh	-g [--noginx]	
 		
 		Installs and configures only gunicorn for the application.
-
-		> ./Detonate.sh	-n [--nogunicorn]	
 		
-		Installs and configures only Nginx on compatible OS' and configures 
-		it for the application	
+		> ./Detonate.sh -d [--debug]
+		
+		Keeps the debug variable in settings set to "True"
+
 		
 								
 
-Supported Operating Systems:
+Known Supported Operating Systems:
 
 > Cygwin:
 	- All (Nginx not currently supported on Cygwin alone, download
       the exe at http://nginx.org/en/download.html).
+	  
+> Ubuntu 14:
+	- All
 	  
 	  

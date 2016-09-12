@@ -5,6 +5,7 @@
 #Command Line Arguments:
 NONGINX=0
 NOGUNICORN=0
+DEBUG=0
 APPNAME="Unknown"
 PWDIR="Unknown"
 
@@ -15,6 +16,13 @@ YL='\033[0;93m'
 BLUE='\033[0;34m'
 LBLU='\033[0;96m'
 NC='\033[0m'
+
+disable_debug ()
+{
+	echo
+	echo -e "${LBLU}Turning off debug${NC}"
+	sudo sed -i -e 's/DEBUG = True/DEBUG = False/' $PWDIR/$APPNAME/$APPNAME/settings.py
+}
 
 setup_gunicorn_nosudo ()
 {
@@ -34,6 +42,7 @@ setup_gunicorn_nosudo ()
 	cd /etc/
 	mkdir -p init
 	cd init	
+	rm -f gunicorn.conf
 	
 	cat <<EOT >> gunicorn.conf
 description "Gunicorn application server handling $APPNAME"
@@ -46,45 +55,139 @@ setuid $USER
 setgid www-data
 chdir /home/$USER/$APPNAME
 
-exec venv/bin/gunicorn --workers 3 --bind unix:/home/$USER/$APPNAME/$APPNAME.sock $APPNAME.wsgi:application
+exec $PWDIR/venv/bin/gunicorn --workers 3 --bind unix:/home/$USER/$APPNAME/$APPNAME.sock $APPNAME.wsgi:application
 
 EOT
-} # Writes a basic config file for gunicorn
+} # Writes a basic config file for gunicorn if superuser privilages 
 
-start_gunicorn ()
+setup_gunicorn_sudo ()
+{
+	pip install gunicorn
+	echo
+	echo Setting up Gunicorn...
+	echo
+	echo -e "${LBLU}Launching server...${NC}"
+	
+	cd $PWDIR/$APPNAME/$APPNAME
+	
+	if [[ $(grep -c "from django.contrib.staticfiles.urls" urls.py) -eq 0 ]]; then
+		sed -i '1s/^/from django.contrib.staticfiles.urls import staticfiles_urlpatterns\n/' urls.py
+		echo "urlpatterns += staticfiles_urlpatterns()" >> urls.py
+	fi
+	
+	cd /etc/
+	sudo mkdir -p init
+	cd init	
+	
+	sudo rm -f gunicorn.conf
+	
+	sudo sh -c "cat >> gunicorn.conf" <<-EOF
+description "Gunicorn application server handling $APPNAME"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+setuid $USER
+setgid www-data
+chdir $PWDIR/$APPNAME
+
+exec $PWDIR/venv/bin/gunicorn --workers 3 --bind unix:$PWDIR/$APPNAME/$APPNAME.sock $APPNAME.wsgi:application
+EOF
+	
+} # Writes a basic config file for gunicorn if superuser privilages are available
+
+setup_nginx ()
+{
+	echo "Installing and configuring Nginx"
+	echo -e "${YL}You may be prompted to enter 'y'${NC}"
+	sleep 3
+	sudo apt-get update
+	sudo apt-get install nginx
+	
+	sudo rm -f /etc/nginx/sites-available/*
+	sudo rm -f /etc/nginx/sites-enabled/*
+	
+	sudo sh -c "cat >> /etc/nginx/sites-available/$APPNAME" <<-EOF
+server {
+    listen 80;
+    server_name localhost;
+
+	location = /favicon.ico {access_log off; log_not_found off; }
+    location /static/ {
+        root $PWDIR/$APPNAME;
+    }
+  
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:$PWDIR/$APPNAME/$APPNAME.sock;
+    }
+}
+EOF
+
+	cd /etc/nginx/sites-enabled
+	sudo ln -s ../sites-available/$APPNAME
+	
+	cd $PWDIR/$APPNAME
+	python manage.py collectstatic --noinput
+} # Install and configure Nginx
+# Allow custom server names
+
+start_nginx ()
+{
+	sudo service nginx restart
+} #Starts/restarts Nginx
+
+start_gunicorn_wsgi ()
 {
 	cd $PWDIR/$APPNAME
 	gunicorn $APPNAME.wsgi 
-}
+} #Starts Gunicorn 
+
+start_gunicorn_service_sudo ()
+{
+	cd $PWDIR/$APPNAME
+	sudo service gunicorn restart
+} #Starts Gunicorn service
 
 setup_cygwin ()
 {
     echo -e "${GREEN}Detected Cygwin as the operating system!${NC}"
 	echo
-	echo -e "${YL}Only gunicorn${NC}"
-	echo -e "${YL}can be installed in Cygwin. Nginx can be downloaded as an${NC}"
+	echo -e "${YL}Only gunicorn${NC} can be installed in Cygwin. Nginx can be downloaded as an${NC}"
 	echo -e "${YL}executable that is run on Windows itself. There is a link in${NC}"
 	echo -e "${YL}the readme.${NC}" 
 	echo
 		
-	if [[ $NOGUNICORN == 1 ]]; then
-		echo -e "${YL}Since you\'ve disabled gunicorn setup, Detonate${NC}"
-		echo -e "${YL}will now exit...${NC}"
-		exit 1
+	setup_gunicorn_nosudo
+	start_gunicorn_wsgi
+	
+} # Sets up Gunicorn on Windows Cygwin
+
+setup_linux ()
+{
+    echo -e "${GREEN}Detected $OSTYPE as the operating system!${NC}"
+	echo
+		
+	setup_gunicorn_sudo
+	start_gunicorn_service_sudo
+	
+	if [[ $NONGINX == 1 ]]; then
+		echo -e "${YL}Skipping Nginx installation${NC}"
 	else
-		setup_gunicorn_nosudo
-		start_gunicorn
+		setup_nginx
+		start_nginx
 	fi
 	
 } # Sets up Gunicorn on Windows Cygwin
       
 setup_unknown ()
 {
-    echo -e "${RED}Unsupported operating system. If your operating system${NC}"
+    echo -e "${RED}Unsupported operating system $OSTYPE. If your operating system${NC}"
     echo -e "${RED}is incompatible with Clusterbomb, please email ${NC}"
-    echo -e "${RED}pswanson@ucdavis.edu and I\'ll see if I can add it.${NC}"
+    echo -e "${RED}pswanson@ucdavis.edu and I'll see if I can add it.${NC}"
     echo
-	echo "${RED}-Peter${NC}"
+	echo -e "${RED}-Peter${NC}"
 } # Runs if the OS is unsupported
 
 invalid_arg ()
@@ -129,8 +232,8 @@ get_cla ()
 	
 		if [[ "$ARGUMENT" == "-g" ]] || [[ "$ARGUMENT" == --nonginx ]]; then
 			NONGINX=1
-		elif [[ "$ARGUMENT" == "-n" ]] || [[ "$ARGUMENT" == --nogunicorn ]]; then
-			NOGUNICORN=1
+		elif [[ "$ARGUMENT" == "-d" ]] || [[ "$ARGUMENT" == --debug ]]; then
+			DEBUG=1
 		else
 			invalid_arg $ARGUMENT
 		fi
@@ -163,14 +266,20 @@ main ()
 	if [[ "$OSTYPE" == 'cygwin' ]]; then
 		NONGINX=1
 		setup_cygwin $1
+	elif [[ "$OSTYPE" == 'linux-gnu' ]]; then
+		setup_linux $1
 	else
 		setup_unknown
+	fi
+	
+	if [[ "$DEBUG" != '1' ]]; then
+		disable_debug
 	fi
 	
 	
 } #Main
 # ADD:
-	#Ubuntu, Linux, OSX at least!
+	#Linux, OSX at least!
 
 main $@
 

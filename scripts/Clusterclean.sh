@@ -18,6 +18,11 @@ done
 
 cd /etc/
 cd init
-rm gunicorn.conf
+
+if [[ $OSTYPE == 'Cygwin' ]]; then
+	rm gunicorn.conf
+else
+	sudo rm -f gunicorn.conf
+fi
 
 echo Done!

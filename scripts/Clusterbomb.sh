@@ -4,9 +4,9 @@
 
 #DEVELOPMENT CHECKLIST:
 	#1 A script to set up a basic instance with a built-in database		<>
-	#2 A seperate script to add Gunicorn and Nginx to the instance 
-	#3 Modify first script that detects errors and works on multiple OS'
-	#4 Make first script customizeable
+	#2 A seperate script to add Gunicorn and Nginx to the instance 		<>
+	#3 Modify first script that detects errors and works on multiple OS' >
+	#4 Make first script customizeable									<>
 	#5 Store templates on an s3 bucket and grab what's needed
 	#6 A script that installs Python, setuptools, and pip if possible
 	#7 A few templates the user can select
@@ -30,6 +30,8 @@
 
 # Command line arguments:
 DETONATE=1
+CDETONATE=0
+DETARGS=""
 CUSTOM=0
 S3CMD=1
 
@@ -60,6 +62,7 @@ create_venv ()
 {
     echo 
     virtualenv -p /usr/bin/python$* venv
+    echo -e "${GREEN}Successfully created Python $VERSION virtual environment${NC}" 
     echo
 } # Create a python virtual environment
 
@@ -129,7 +132,6 @@ choose_venv ()
 	fi
 	
     echo
-    echo -e "${GREEN}Successfully created Python $VERSION virtual environment${NC}" 
 } # Choose a python virtual environment
 
 get_pip_packages ()
@@ -421,10 +423,18 @@ EOT
 
 run_detonate ()
 {
-#Takes optional variables for CLA
 	echo
 	echo -e "${LBLU}Running Detonate.sh${NC}"
 	./Detonate.sh
+} # Runs Detonate.sh
+
+run_custom_detonate ()
+{
+	echo -n -e "Enter arguments for Detonate ${YL}[ -n -d ]${NC} > "
+	read DETARGS
+	echo
+	echo -e "${LBLU}Running Detonate.sh $DETARGS${NC}"
+	./Detonate.sh $DETARGS
 } # Runs Detonate.sh
 
 start_app ()
@@ -446,7 +456,7 @@ custom ()
 	create_base
 	
 	if [[ "DETONATE" -eq 1 ]]; then
-		run_detonate
+		run_custom_detonate
 	else 
 		start_app
 	fi
@@ -463,7 +473,9 @@ default ()
 	run_migrations
 	create_base
 	
-	if [[ "$DETONATE" -eq 1 ]]; then
+	if [[ "$CDETONATE" -eq 1 ]]; then
+		run_custom_detonate
+	elif [[ "$DETONATE" -eq 1 ]]; then
 		run_detonate
 	else
 		start_app
@@ -516,6 +528,8 @@ get_cla ()
 			CUSTOM=1
 		elif [[ "$ARGUMENT" == "-d" ]] || [[ "$ARGUMENT" == --dud ]]; then
 			DETONATE=0
+		elif [[ "$ARGUMENT" == "-a" ]] || [[ "$ARGUMENT" == --detargs ]]; then
+			CDETONATE=1
 		else
 			invalid_arg $ARGUMENT
 		fi
