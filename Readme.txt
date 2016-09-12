@@ -23,7 +23,7 @@ Clusterbomb:
 Files Included:
 
 	- Clusterbomb.sh	Starts a Django application with a base template
-	- Clusterclean.sh	Cleans the directory of everything but the scripts
+	- Clusterclean.sh	Removes a Clusterbomb project
 	- Detonate.sh		Gets your Django application Amazon Web Server ready
 
 	
@@ -61,7 +61,15 @@ Commands:
 		
 		Cleans all non shellscript files, and directories from 
 		the current directory in case of mistakes or errors during
-		a setup. Removes gunicorn config file.
+		a setup. 
+		
+		> ./Clusterclean.sh -s [--shrapnel]
+		
+		Cleans all non shellscript files, and directories from 
+		the current directory in case of mistakes or errors during
+		a setup. Removes gunicorn and Nginx config files.
+		
+		
 	
 	- Detonate.sh:
 	  Arguments: Detonate.sh -n -d

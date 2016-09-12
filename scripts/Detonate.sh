@@ -17,11 +17,18 @@ BLUE='\033[0;34m'
 LBLU='\033[0;96m'
 NC='\033[0m'
 
-disable_debug ()
+disable_debug_sudo ()
 {
 	echo
 	echo -e "${LBLU}Turning off debug${NC}"
 	sudo sed -i -e 's/DEBUG = True/DEBUG = False/' $PWDIR/$APPNAME/$APPNAME/settings.py
+}
+
+disable_debug ()
+{
+	echo
+	echo -e "${LBLU}Turning off debug${NC}"
+	sed -i -e 's/DEBUG = True/DEBUG = False/' $PWDIR/$APPNAME/$APPNAME/settings.py
 }
 
 setup_gunicorn_nosudo ()
@@ -53,10 +60,9 @@ stop on runlevel [!2345]
 respawn
 setuid $USER
 setgid www-data
-chdir /home/$USER/$APPNAME
+chdir $PWDIR/$APPNAME
 
-exec $PWDIR/venv/bin/gunicorn --workers 3 --bind unix:/home/$USER/$APPNAME/$APPNAME.sock $APPNAME.wsgi:application
-
+exec $PWDIR/venv/bin/gunicorn --workers 3 --bind unix:$PWDIR/$APPNAME/$APPNAME.sock $APPNAME.wsgi:application
 EOT
 } # Writes a basic config file for gunicorn if superuser privilages 
 
@@ -154,13 +160,17 @@ setup_cygwin ()
 {
     echo -e "${GREEN}Detected Cygwin as the operating system!${NC}"
 	echo
-	echo -e "${YL}Only gunicorn${NC} can be installed in Cygwin. Nginx can be downloaded as an${NC}"
+	echo -e "${YL}Only gunicorn can be installed in Cygwin. Nginx can be downloaded as an${NC}"
 	echo -e "${YL}executable that is run on Windows itself. There is a link in${NC}"
 	echo -e "${YL}the readme.${NC}" 
 	echo
 		
 	setup_gunicorn_nosudo
 	start_gunicorn_wsgi
+	
+	if [[ "$DEBUG" != '1' ]]; then
+		disable_debug
+	fi
 	
 } # Sets up Gunicorn on Windows Cygwin
 
@@ -179,6 +189,10 @@ setup_linux ()
 		start_nginx
 	fi
 	
+	if [[ "$DEBUG" != '1' ]]; then
+		disable_debug_sudo
+	fi
+	
 } # Sets up Gunicorn on Windows Cygwin
       
 setup_unknown ()
@@ -193,7 +207,7 @@ setup_unknown ()
 invalid_arg ()
 {
 	echo -e "${RED}Argument $* is invalid! Exiting...${NC}"
-	exit 0
+	exit 1
 } # Exits on invalid command line argument
 
 cla_parser ()
@@ -270,10 +284,6 @@ main ()
 		setup_linux $1
 	else
 		setup_unknown
-	fi
-	
-	if [[ "$DEBUG" != '1' ]]; then
-		disable_debug
 	fi
 	
 	
