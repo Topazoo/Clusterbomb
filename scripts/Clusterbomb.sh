@@ -41,7 +41,7 @@ CLA=()
 # Detected:
 VERSION=`python -c "import sys;version='{info[0]}.{info[1]}'.format(info=list(sys.version_info[:2]));sys.stdout.write(version)";`
 VALID=0
-PWD="UNKNOWN"
+PWDIR="UNKNOWN"
 
 #Colors:
 RED='\033[0;91m'
@@ -50,6 +50,12 @@ YL='\033[0;93m'
 BLUE='\033[0;34m'
 LBLU='\033[0;96m'
 NC='\033[0m'
+
+create_tracer ()
+{
+	touch .trace
+	
+}
 
 name_app ()
 {
@@ -136,7 +142,7 @@ choose_venv ()
 
 get_pip_packages ()
 {
-    source venv/bin/activate
+    source $PWDIR/venv/bin/activate
 
 	echo
     echo Installing pip packeges...
@@ -166,7 +172,7 @@ run_migrations ()
 {
     echo Setting up application...
 	
-    cd $APPLNAME
+    cd $PWDIR/$APPLNAME
     python manage.py makemigrations
     python manage.py migrate
 	
@@ -188,16 +194,15 @@ create_base ()
 	echo "    url(r'^$', views.base, name='base')," >> urls.py
 	echo "]" >> urls.py
 	
-	rm views.py
+	rm -f views.py
 	
 	echo "from django.shortcuts import render" >> views.py
 	echo -e "\n\n\n" >> views.py
 	echo "def base(request):" >> views.py
 	echo "    return render(request, 'base/home.html', {})" >> views.py
 
-	cd ..
-	cd $APPLNAME
-	rm urls.py
+	cd $PWDIR/$APPLNAME/$APPLNAME
+	rm -f urls.py
 	
 	echo "from django.conf.urls import include, url" >> urls.py
 	echo "from django.contrib import admin" >> urls.py
@@ -207,7 +212,7 @@ create_base ()
 	echo "    url(r'', include('base.urls'))," >> urls.py
 	echo "]" >> urls.py
 	
-	rm settings.py
+	rm -f settings.py
 	cat <<EOT >> settings.py
 """
 Django settings for $APPLNAME project.
@@ -336,8 +341,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 EOT
 
-	cd ..
-	cd base
+	cd $PWDIR/$APPLNAME/base
 	mkdir templates
 	mkdir static
 	cd templates
@@ -382,8 +386,7 @@ EOT
 {% endblock %}
 EOT
 
-	cd ../..
-	cd static
+	cd $PWDIR/$APPLNAME/base/static
 	mkdir css
 	cd css
 	
@@ -417,7 +420,6 @@ EOT
 
 	echo -e "${GREEN}Created base!${NC}"
 
-	cd ../../../..
 
 } # Sets up and creates a base template
 
@@ -425,6 +427,7 @@ run_detonate ()
 {
 	echo
 	echo -e "${LBLU}Running Detonate.sh${NC}"
+	cd $PWDIR
 	./Detonate.sh
 } # Runs Detonate.sh
 
@@ -434,12 +437,13 @@ run_custom_detonate ()
 	read DETARGS
 	echo
 	echo -e "${LBLU}Running Detonate.sh $DETARGS${NC}"
-	./Detonate.sh $DETARGS
+	cd $PWDIR
+	Detonate.sh $DETARGS
 } # Runs Detonate.sh
 
 start_app ()
 {
-	cd $APPLNAME
+	cd $PWDIR/$APPLNAME
 	echo 
 	echo -e "${LBLU}Starting application...${NC}"
 	
@@ -539,7 +543,7 @@ get_cla ()
 
 main ()
 {
-	PWD=$(pwd)
+	PWDIR=$(pwd)
 	get_cla $@
 	
 	if [[ "$CUSTOM" -eq 0 ]]; then

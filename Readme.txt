@@ -69,7 +69,6 @@ Commands:
 		the current directory in case of mistakes or errors during
 		a setup. Removes gunicorn and Nginx config files.
 		
-		
 	
 	- Detonate.sh:
 	  Arguments: Detonate.sh -n -d
@@ -85,9 +84,7 @@ Commands:
 		
 		> ./Detonate.sh -d [--debug]
 		
-		Keeps the debug variable in settings set to "True"
-
-		
+		Keeps the debug variable in settings set to "True"	
 								
 
 Known Supported Operating Systems:
@@ -99,4 +96,6 @@ Known Supported Operating Systems:
 > Ubuntu 14:
 	- All
 	  
-	  
+Known Supported Python Versions:
+
+> 2.7

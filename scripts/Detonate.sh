@@ -164,13 +164,10 @@ setup_cygwin ()
 	echo -e "${YL}executable that is run on Windows itself. There is a link in${NC}"
 	echo -e "${YL}the readme.${NC}" 
 	echo
-		
+			
 	setup_gunicorn_nosudo
 	start_gunicorn_wsgi
 	
-	if [[ "$DEBUG" != '1' ]]; then
-		disable_debug
-	fi
 	
 } # Sets up Gunicorn on Windows Cygwin
 
@@ -178,6 +175,10 @@ setup_linux ()
 {
     echo -e "${GREEN}Detected $OSTYPE as the operating system!${NC}"
 	echo
+	
+	if [[ "$DEBUG" != '0' ]]; then
+		disable_debug
+	fi
 		
 	setup_gunicorn_sudo
 	start_gunicorn_service_sudo
@@ -187,10 +188,6 @@ setup_linux ()
 	else
 		setup_nginx
 		start_nginx
-	fi
-	
-	if [[ "$DEBUG" != '1' ]]; then
-		disable_debug_sudo
 	fi
 	
 } # Sets up Gunicorn on Windows Cygwin
@@ -262,9 +259,8 @@ get_name()
 
 main ()
 {
-	get_name $@
 	PWDIR=$(pwd)
-	
+	get_name $@	
 	echo 
 	if [[ ${#APPNAME} == 0 ]]; then
 		echo -e "${RED}Couldn't find a Django application! Exiting!${NC}"
@@ -279,6 +275,7 @@ main ()
 
 	if [[ "$OSTYPE" == 'cygwin' ]]; then
 		NONGINX=1
+		DEBUG=1
 		setup_cygwin $1
 	elif [[ "$OSTYPE" == 'linux-gnu' ]]; then
 		setup_linux $1
